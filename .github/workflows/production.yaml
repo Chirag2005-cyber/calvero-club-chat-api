@@ -1,0 +1,55 @@
+name: Publish to Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: ${{ github.workflow }}
+      cancel-in-progress: true
+    if: ${{ github.ref == 'refs/heads/main' }}
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install EF Tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Add EF tools to PATH
+        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment files
+        run: |
+          rm -rf .git
+          rm -rf .github
+          dotnet publish Api.csproj -c Release -r linux-x64 --self-contained true -o ./publish
+
+      - name: Upload project files to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          local_path: './publish/*'
+          remote_path: '/var/www/chat-api.calvero.club'
+
+      - name: Restart service on remote server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl daemon-reload
+            sudo systemctl enable chat-calvero-api
+            sudo systemctl restart chat-calvero-api
+            sudo systemctl status chat-calvero-api --no-pager

@@ -1,0 +1,251 @@
+### REQUIRED USER ATTRIBUTE TESTS
+@LocalApi = http://localhost:5000
+
+### Test RequiredUser - Without JWT Token (should return 401)
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+
+{
+  "name": "Test Room",
+  "password": "123456"
+}
+
+### Test RequiredUser - With Invalid JWT Token (should return 401)
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+{
+  "name": "Test Room",  
+  "password": "123456"
+}
+
+### Test RequiredUser - With Valid JWT Token (should work)
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "Test Room",
+  "password": "123456"
+}
+
+### Test Rate Limiting - Send 6 messages quickly (6th should return 429)
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 1"
+}
+
+### Test Rate Limiting - Message 2
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 2"
+}
+
+### Test Rate Limiting - Message 3
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 3"
+}
+
+### Test Rate Limiting - Message 4
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 4"
+}
+
+### Test Rate Limiting - Message 5
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 5"
+}
+
+### Test Rate Limiting - Message 6 (Should return 429 Too Many Requests)
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Message 6 - This should be rate limited"
+}
+
+### Test User Info with RequiredUser
+GET {{LocalApi}}/users/me
+Authorization: Bearer {{jwt_token}}
+
+### FLUENT VALIDATION TESTS FOR LOCAL ENVIRONMENT
+@LocalApi = http://localhost:5000
+
+### Test FluentValidation - Invalid CreateUser (empty username)
+POST {{LocalApi}}/auth/register
+Content-Type: application/json
+
+{
+  "username": ""
+}
+
+### Test FluentValidation - Invalid CreateUser (short username)
+POST {{LocalApi}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "ab"
+}
+
+### Test FluentValidation - Invalid CreateUser (special characters)
+POST {{LocalApi}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "test@user!"
+}
+
+### Test FluentValidation - Valid CreateUser
+POST {{LocalApi}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "test_user_123"
+}
+
+### Test FluentValidation - Invalid Login (empty identity)
+POST {{LocalApi}}/auth/login
+Content-Type: application/json
+
+{
+  "identity": ""
+}
+
+### Test FluentValidation - Invalid Chat Room (empty name)
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "",
+  "password": "123456"
+}
+
+### Test FluentValidation - Invalid Chat Room (short password)
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "Test Room",
+  "password": "12"
+}
+
+### Test FluentValidation - Valid Chat Room
+POST {{LocalApi}}/chat/rooms
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "name": "Test Room",
+  "password": "123456"
+}
+
+### Test FluentValidation - Invalid Message (empty content)
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": ""
+}
+
+### Test FluentValidation - Valid Message
+POST {{LocalApi}}/chat/messages
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "chatRoomId": 1,
+  "content": "Hello, this is a test message!"
+}
+
+### ORIGINAL REQUESTS FOR LOCAL ENVIRONMENT
+# User registration (auth/join)
+POST {{LocalApi}}/auth/join
+Content-Type: application/json
+Accept: application/json
+
+{
+  "IdentityCode": "testuser1",
+  "GivenName": "Test",
+  "Surname": "User",
+  "ContactEmail": "test@local.dev",
+  "SecureKey": "testpass"
+}
+
+### User login (auth/welcome)
+POST {{LocalApi}}/auth/welcome
+Content-Type: application/json
+Accept: application/json
+
+{
+  "IdentityCode": "testuser1",
+  "SecureKey": "testpass"
+}
+
+### JWT-protected user info (user/me)
+# Fill the Authorization header below with the JWT returned from the welcome endpoint
+GET {{LocalApi}}/user/me
+Authorization: Bearer {{jwt_token}}
+Accept: application/json
+
+
+### SAMPLE REQUESTS FOR PRODUCTION ENVIRONMENT
+@ProdApi = https://api.calvero.club
+
+# User registration (auth/join)
+POST {{ProdApi}}/auth/join
+Content-Type: application/json
+Accept: application/json
+
+{
+  "IdentityCode": "produser1",
+  "GivenName": "Prod",
+  "Surname": "User",
+  "ContactEmail": "prod@calvero.club",
+  "SecureKey": "prodpass"
+}
+
+### User login (auth/welcome)
+POST {{ProdApi}}/auth/welcome
+Content-Type: application/json
+Accept: application/json
+
+{
+  "IdentityCode": "produser1",
+  "SecureKey": "prodpass"
+}
+
+### JWT-protected user info (user/me)
+# Fill the Authorization header below with the JWT returned from the welcome endpoint
+GET {{ProdApi}}/user/me
+Authorization: Bearer {{jwt_token}}
+Accept: application/json
